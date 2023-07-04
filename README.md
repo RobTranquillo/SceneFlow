@@ -1,5 +1,6 @@
-Created by Rob [VR Bits](http://www.vr-bits.com) and is 100% based on [UnityGraphViewTemplate](https://github.com/RobTranquillo/UnityGraphViewTemplate).
+Created by Rob [VR Bits](http://www.vr-bits.com) 07.2023 and is 100% based on [UnityGraphViewTemplate](https://github.com/RobTranquillo/UnityGraphViewTemplate).
 
+In heavy development, not ready for production use!
 
 # Basic GraphView Example
 
