@@ -1,11 +1,12 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.Events;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
-using Object = System.Object;
 
 namespace vrbits
 {
@@ -16,19 +17,26 @@ namespace vrbits
     /// </summary>
     public class SceneLoader : Singleton<SceneLoader>
     {
+        public UnityEvent loadingStarted, loadingFinished;
+        public UnityEvent<string, float> loadingUpdated;
         const bool SceneActivateOnLoad = false;
 
         //Highlanders are scenes of which only one can be active at a time.
         //Every other Highlander is unloaded beforehand.
-        //Ok, Highlanders can have children that they spawn and tahs also must be unloaded.
-        private Stack highlanderScenes = new Stack();
-        private Scene? highlanderScene = null; ///////////////////////  löschen!!!!!!!!!
-
+        private SceneInstance highlanderScene;
+        public List<SceneInstance> loadedScenes;
 
         [Tooltip("For unloading purposes, the MainMap scene addressable is needed")]
         public AssetReference mapScene;
+
         private AssetReference _mapSceneRuntimeReference = null;
         internal LoadSceneMode loadSceneMode = LoadSceneMode.Additive;
+
+        public override void Awake()
+        {
+            base.Awake();
+            loadedScenes = new List<SceneInstance>();
+        }
 
         public void LoadScene(string sceneName)
         {
@@ -44,6 +52,7 @@ namespace vrbits
         {
             Debug.Log($"Start loading of Addressable: {reference}");
             StartCoroutine(LoadSceneAsync(reference));
+            loadingStarted?.Invoke();
         }
 
 
@@ -54,111 +63,119 @@ namespace vrbits
         /// <param name="reference"></param>
         public void LoadSceneAsHighlander(AssetReference reference)
         {
-            AsyncOperation removingOperation = RemoveOtherHighlander();
-            if (removingOperation == null)
-                StartCoroutine(LoadSceneAsync(reference, true));
-            else
-                removingOperation.completed += (op) => StartCoroutine(LoadSceneAsync(reference, true));
+            StartCoroutine(LoadSceneAsync(reference, true));
         }
 
-        private void RemovingOperation_completed(AsyncOperation obj)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Highlanders are scenes of which only one can be active at a time.
-        /// Every other Highlander is unloaded here.
-        /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
-        private AsyncOperation RemoveOtherHighlander()
-        {
-            if (highlanderScenes.Count == 0)
-                return null;
-
-            Scene lastHighlander = (Scene)highlanderScenes.Pop();
-            if (!lastHighlander.isLoaded)
-                return null;
-
-            if (highlanderScenes.Count > 0)
-            {
-                return RemoveOtherHighlander();
-            }
-
-            return SceneManager.UnloadSceneAsync((Scene)lastHighlander);
-        }
-
-
-
-        /// <summary>
-        /// Highlanders are scenes of which only one can be active at a time.
-        /// Every other Highlander is unloaded here.
-        /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
-        //private AsyncOperation RemoveOtherHighlander()
-        //{
-        //    if (highlanderScenes == null)
-        //        return null;
-        //    if (highlanderScenes.Count == 0)
-        //        return null;
-
-
-        //    while (highlanderScenes.Count > 0)
-        //    {
-        //        var lastHighlander = highlanderScenes.Pop();
-        //        if (!highlanderScene.Value.isLoaded)
-        //            continue;
-        //        return SceneManager.UnloadSceneAsync((Scene)lastHighlander);
-        //    }
-        //}
 
         private IEnumerator LoadSceneAsync(AssetReference sceneReference, bool highlander = false)
         {
-            var async = Addressables.InitializeAsync();
-            while (!async.IsDone)
+            //Check if Scene is already Loaded
+            for (int i = 0; i < loadedScenes.Count; i++)
             {
-                Debug.Log("Addressable System Init " + async.PercentComplete);
+                //Check if Addressable Scene is already loaded
+                if (loadedScenes[i].Scene.name == sceneReference.RuntimeKey.ToString())
+                {
+                    if (loadedScenes[i].Scene.isLoaded)
+                    {
+                        Debug.LogError("Scene " + sceneReference.SubObjectName + " is already loaded and activated");
+                        yield break;
+                    }
+
+                    Debug.Log($"Scene {sceneReference.RuntimeKey} is already loaded");
+                    StartCoroutine(ActivateSceneAsync(loadedScenes[i], highlander, sceneReference));
+                    if (loadingUpdated != null)
+                        loadingUpdated.Invoke(sceneReference.SubObjectName + " Activating", 100);
+                    yield break;
+                }
+            }
+
+            AsyncOperationHandle handle;
+            //Init Addressable System
+            handle = Addressables.InitializeAsync();
+
+            while (!handle.IsDone)
+            {
+                if (loadingUpdated != null)
+                    loadingUpdated.Invoke("Activating System", handle.PercentComplete * 100);
                 yield return null;
             }
 
             while (!sceneReference.IsDone)
             {
-                var asyncDownload = Addressables.DownloadDependenciesAsync(sceneReference);
-                while (!asyncDownload.IsDone)
+                handle = Addressables.DownloadDependenciesAsync(sceneReference);
+                while (!handle.IsDone)
                 {
-                    Debug.Log("Addressable Download " + asyncDownload.PercentComplete);
+                    Debug.Log("Addressable Download " + handle.PercentComplete);
+                    if (loadingUpdated != null)
+                        loadingUpdated.Invoke(sceneReference.SubObjectName + " downloading", handle.PercentComplete);
                     yield return null;
                 }
             }
 
-            Addressables.LoadResourceLocationsAsync(sceneReference).Completed += (loc) =>
+            handle = Addressables.LoadResourceLocationsAsync(sceneReference);
+
+            while (!handle.IsDone)
             {
-                Scene sceneToLoad = SceneManager.GetSceneByPath(loc.Result[0].InternalId);
+                var downloadStatus = handle.GetDownloadStatus();
+                if (loadingUpdated != null)
+                    loadingUpdated.Invoke(sceneReference.SubObjectName + " Loading Ressources", downloadStatus.Percent);
+                yield return null;
+            }
 
-                //only load scene if not loaded in Editor yet
-                if (sceneToLoad.isLoaded)
-                    return;
-
-                sceneReference.LoadSceneAsync(loadSceneMode, SceneActivateOnLoad).Completed += OnCompleteLoading;
-                void OnCompleteLoading(AsyncOperationHandle<SceneInstance> handle)
+            if (!sceneReference.OperationHandle.IsValid())
+            {
+                handle = sceneReference.LoadSceneAsync(loadSceneMode, SceneActivateOnLoad);
+                while (!handle.IsDone)
                 {
-                    ActivateScene(handle, highlander, sceneReference);
-                };
-            };
+                    var downloadStatus = handle.GetDownloadStatus();
+                    if (loadingUpdated != null)
+                        loadingUpdated.Invoke(sceneReference.SubObjectName + " loading", downloadStatus.Percent);
+                    yield return null;
+                }
+
+                StartCoroutine(ActivateSceneAsync((SceneInstance)handle.Result, highlander, sceneReference));
+            }
         }
 
-        private void ActivateScene(AsyncOperationHandle<SceneInstance> loadedSceneHandle, bool highlander, AssetReference sceneReference)
+        private IEnumerator ActivateSceneAsync(SceneInstance loadedSceneHandle, bool highlander, AssetReference sceneReference)
         {
-            if (loadedSceneHandle.Status != AsyncOperationStatus.Succeeded)
+            if (loadedSceneHandle.Scene.isLoaded)
             {
-                Debug.Log("<b>Scene could't be activated</b> maybe downloading and loading is not finished yet.");
-                return;
+                Debug.Log("Scene " + loadedSceneHandle.Scene.name + " is already loaded");
+                yield break;
             }
-            loadedSceneHandle.Result.ActivateAsync();
+
+
+            var async = loadedSceneHandle.ActivateAsync();
+            while (!async.isDone)
+            {
+                if (loadingUpdated != null)
+                    loadingUpdated.Invoke(sceneReference.SubObjectName + " activating", async.progress);
+                yield return null;
+            }
+
+            if (loadingUpdated != null)
+                loadingUpdated.Invoke(sceneReference.SubObjectName + " unloading", async.progress);
+
+            if (highlanderScene.Scene.isLoaded)
+            {
+                //Remove Other Highlander
+                var asyncHandle = Addressables.UnloadSceneAsync(highlanderScene);
+                while (!asyncHandle.IsDone)
+                {
+                    yield return null;
+                    if (loadingUpdated != null && asyncHandle.IsValid())
+                        loadingUpdated.Invoke(sceneReference.SubObjectName + " unloading", asyncHandle.PercentComplete);
+                }
+            }
 
             if (highlander)
-                highlanderScenes.Push(loadedSceneHandle.Result.Scene);
+                highlanderScene = loadedSceneHandle;
+            else
+                loadedScenes.Add(loadedSceneHandle);
             StoreMapSceneReference(sceneReference);
+            if (loadingFinished != null)
+                loadingFinished.Invoke();
         }
 
         private void StoreMapSceneReference(AssetReference sceneReference)
@@ -173,11 +190,38 @@ namespace vrbits
         {
             if (_mapSceneRuntimeReference != null)
                 _mapSceneRuntimeReference.UnLoadScene();
-#if UNITY_EDITOR
-            else
-                SceneManager.UnloadSceneAsync(_mapSceneRuntimeReference.editorAsset.name);
-#endif
         }
-    }
 
+        #region Scene Unloading
+
+        public Action allScenesUnloaded;
+        private int _scenesToUnload = 0;
+
+        public void UnloadScene(AssetReference scene)
+        {
+            _scenesToUnload++;
+            StartCoroutine(UnloadAsync(scene));
+        }
+
+        private IEnumerator UnloadAsync(AssetReference scene)
+        {
+            for (int i = 0; i < loadedScenes.Count; i++)
+            {
+                if (loadedScenes[i].Scene.name == scene.SubObjectName)
+                {
+                    Debug.Log($"<color=green>Start unlading<color> of scene \"{scene.SubObjectName}\"");
+                    loadedScenes.RemoveAt(i);
+                    yield return Addressables.UnloadSceneAsync(loadedScenes[i]);
+                    Debug.Log($"<color=green>Done unlading<color> of scene \"{scene.SubObjectName}\"");
+                    break;
+                }
+            }
+
+            _scenesToUnload--;
+            if (_scenesToUnload <= 0)
+                allScenesUnloaded?.Invoke();
+        }
+
+        #endregion
+    }
 }
