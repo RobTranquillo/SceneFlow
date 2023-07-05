@@ -52,9 +52,13 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5115236388335805885, guid: 656f6aa8f1e2a604998a38bef4cd08bb, type: 3}
+      propertyPath: m_VerticalAlignment
+      value: 256
+      objectReference: {fileID: 0}
     - target: {fileID: 6307086625117330782, guid: 656f6aa8f1e2a604998a38bef4cd08bb, type: 3}
       propertyPath: m_Name
-      value: SceneInteriourTemplate
+      value: SceneInteriour_S1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
