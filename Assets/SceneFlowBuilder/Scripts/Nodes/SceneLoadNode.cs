@@ -11,6 +11,7 @@ public class SceneLoadNode : CompositeNode
     public string title = "";
     public string description = "";
     public AssetReferenceScene scene;
+    public bool debug = false;
     
     private bool loadingIsInProcess = false;
     private bool loadingIsFinish = false;
@@ -20,7 +21,7 @@ public class SceneLoadNode : CompositeNode
     {
         loadingIsInProcess = true;
         loadingIsFinish = false;
-        Debug.Log("beginne laden von scene: " + title);
+        Debug.Log($"Loading scene: <color=lightblue>{title}</color>");
 
         //SceneLoader.Instance.allScenesUnloaded += LoadScene;
         SceneLoader.Instance.loadingFinished.AddListener(() => loadingIsInProcess = false);
@@ -32,15 +33,22 @@ public class SceneLoadNode : CompositeNode
     {
         SceneLoader.Instance.loadingFinished.RemoveListener(() => loadingIsInProcess = false);
         SceneLoader.Instance.loadingFinished.RemoveListener(() => loadingIsFinish = true);
-        Debug.Log("laden von scene ist beendet");
-
-        children[0].Update();
+        if (debug)
+            Debug.Log("laden von scene ist beendet");
     }
 
     protected override State OnUpdate()
     {
+        if (debug)
+            Debug.Log("scene loading Update");
         if (loadingIsFinish)
-            return State.Success;
+        {
+            State overAllState = State.Success;
+            foreach (var child in children)
+                if (child.Update() != State.Success)
+                    overAllState = child.state;
+            return overAllState;
+        }
 
         if (loadingIsInProcess)
             return State.Running;

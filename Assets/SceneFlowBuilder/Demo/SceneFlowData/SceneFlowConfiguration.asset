@@ -15,8 +15,48 @@ MonoBehaviour:
   state: 0
   started: 1
   guid: a330876f-bb5a-4ed7-98de-a0d91d2f4369
-  position: {x: 100, y: 105}
-  child: {fileID: 245655760803253841}
+  position: {x: 29, y: 19}
+  child: {fileID: -1573357037047029971}
+--- !u!114 &-1573357037047029971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca5c94be5632219448f9a09f383c2cbb, type: 3}
+  m_Name: DelayNode
+  m_EditorClassIdentifier: 
+  state: 0
+  started: 0
+  guid: 1381f602-24e9-4a40-b5b1-adecf64962fa
+  position: {x: 160, y: -36}
+  children:
+  - {fileID: 245655760803253841}
+  duration: 1
+  debug: 0
+--- !u!114 &-994504910463249501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca5c94be5632219448f9a09f383c2cbb, type: 3}
+  m_Name: DelayNode
+  m_EditorClassIdentifier: 
+  state: 0
+  started: 0
+  guid: 7316b939-c64b-47f0-83c5-f1a2fcbfdc6b
+  position: {x: 489, y: -36}
+  children:
+  - {fileID: 3582462009176674972}
+  duration: 2
+  debug: 0
 --- !u!114 &-407370418559223847
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -32,8 +72,9 @@ MonoBehaviour:
   state: 0
   started: 0
   guid: 85769750-5a6d-4c87-b452-867fbe8da992
-  position: {x: 644, y: 105}
-  message: Success
+  position: {x: 825, y: 78}
+  debug: 0
+  message: Laden von zwei Szenen abgeschlossen
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -53,7 +94,8 @@ MonoBehaviour:
   - {fileID: -407370418559223847}
   - {fileID: 245655760803253841}
   - {fileID: 3582462009176674972}
-  - {fileID: 2540552377887436033}
+  - {fileID: -1573357037047029971}
+  - {fileID: -994504910463249501}
 --- !u!114 &245655760803253841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -69,8 +111,9 @@ MonoBehaviour:
   state: 0
   started: 0
   guid: 6c153591-9b77-428b-bb79-2297b634b718
-  position: {x: 255, y: 105}
-  child: {fileID: 3582462009176674972}
+  position: {x: 298, y: 19}
+  children:
+  - {fileID: -994504910463249501}
   title: Scene One
   description: 
   scene:
@@ -79,23 +122,7 @@ MonoBehaviour:
     m_SubObjectType: 
     m_EditorAssetChanged: 0
     sceneName: Scene-One
---- !u!114 &2540552377887436033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8afdec80c0fd63b4e83eabc137ae7d17, type: 3}
-  m_Name: WaitNode
-  m_EditorClassIdentifier: 
-  state: 0
-  started: 0
-  guid: f77ba353-68e7-4ce4-bb46-9f090bca0dc6
-  position: {x: 0, y: 0}
-  duration: 1
+  debug: 0
 --- !u!114 &3582462009176674972
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -111,8 +138,9 @@ MonoBehaviour:
   state: 0
   started: 0
   guid: ce754a8e-9532-46da-b809-c3e417135fcb
-  position: {x: 453, y: 105}
-  child: {fileID: -407370418559223847}
+  position: {x: 639, y: 19}
+  children:
+  - {fileID: -407370418559223847}
   title: Scene Two
   description: 
   scene:
@@ -121,3 +149,4 @@ MonoBehaviour:
     m_SubObjectType: 
     m_EditorAssetChanged: 0
     sceneName: Scene-Two
+  debug: 0
